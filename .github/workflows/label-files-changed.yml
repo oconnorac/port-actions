@@ -21,7 +21,7 @@ jobs:
       - name: Get files changed in PR
         id: files
         run: |
-          FILES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          FILES=$(curl -s -H "Authorization: token ${{ secrets.ADMIN_GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/files" \
             | jq -r '.[].filename')
 
@@ -40,7 +40,7 @@ jobs:
       - name: Add label to PR
         run: |
           curl -s -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: token ${{ secrets.ADMIN_GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"labels\": [\"files: $FILE_LABEL\"]}" \
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PR_NUMBER }}/labels"
