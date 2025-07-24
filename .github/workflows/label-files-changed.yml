@@ -1,0 +1,46 @@
+name: Label PR with Changed Files
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number'
+        required: true
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract inputs
+        id: vars
+        run: |
+          echo "PORT_PAYLOAD=${{ github.event.inputs.port_payload }}" >> $GITHUB_ENV
+          echo "PR_NUMBER=${{ github.event.inputs.pr }}" >> $GITHUB_ENV
+
+      - name: Get files changed in PR
+        id: files
+        run: |
+          FILES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/files" \
+            | jq -r '.[].filename')
+
+          # Join with commas
+          FILE_LABEL=$(echo "$FILES" | paste -sd "," -)
+
+          # Truncate if too long
+          MAX_LENGTH=50
+          if [ ${#FILE_LABEL} -gt $MAX_LENGTH ]; then
+            FILE_LABEL="${FILE_LABEL:0:$MAX_LENGTH}..."
+          fi
+
+          echo "Changed files: $FILE_LABEL"
+          echo "FILE_LABEL=$FILE_LABEL" >> $GITHUB_ENV
+
+      - name: Add label to PR
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"labels\": [\"files: $FILE_LABEL\"]}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PR_NUMBER }}/labels"
