@@ -6,6 +6,9 @@ on:
       pr:
         description: 'Pull request number'
         required: true
+      id:
+        description: 'PR identifier'
+        required: true
 
 jobs:
   label-pr:
@@ -37,10 +40,25 @@ jobs:
           echo "Changed files: $FILE_LABEL"
           echo "FILE_LABEL=$FILE_LABEL" >> $GITHUB_ENV
 
-      - name: Add label to PR
+      - name: Update entity in Port
         run: |
-          curl -s -X POST \
-            -H "Authorization: token ${{ secrets.ADMIN_GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"labels\": [\"files: $FILE_LABEL\"]}" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PR_NUMBER }}/labels"
+          CLIENT_ID=${{ secrets.PORT_CLIENT_ID }}
+          CLIENT_SECRET=${{ secrets.PORT_CLIENT_SECRET }}
+          BLUEPRINT_ID="githubPullRequest"
+          ENTITY_ID=${{ github.event.inputs.id }}
+
+          access_token=$(curl --location --request POST 'https://api.getport.io/v1/auth/access_token' \
+            --header 'Content-Type: application/json' \
+            --data-raw '{
+              "clientId": "'"$CLIENT_ID"'",
+              "clientSecret": "'"$CLIENT_SECRET"'"
+            }' | jq -r '.accessToken')
+
+          curl --location --request PATCH "https://api.getport.io/v1/blueprints/${BLUEPRINT_ID}/entities/${ENTITY_ID}" \
+          --header "Authorization: Bearer $access_token" \
+          --header "Content-Type: application/json" \
+          --data-raw '{
+            "relations": {
+              "service": [$FILE_LABEL]
+            }
+          }'
