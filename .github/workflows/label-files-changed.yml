@@ -23,7 +23,7 @@ jobs:
         run: |
           FILES=$(curl -s -H "Authorization: token ${{ secrets.ADMIN_GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/files" \
-            | jq -r '.[].filename')
+            | jq -r '.[].filename | split("/")[:-1] | join("/")')
 
           # Join with commas
           FILE_LABEL=$(echo "$FILES" | paste -sd "," -)
